@@ -1,0 +1,4 @@
+gensim==4.4.0
+numpy>=1.26,<3
+fastapi>=0.116,<0.117
+uvicorn[standard]>=0.35,<1

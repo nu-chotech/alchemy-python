@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Semantic Alchemy</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="workspace">
+        <div class="status-bar">
+          <div>
+            <p class="eyebrow">Semantic Alchemy</p>
+            <h1 id="current-word">りんご</h1>
+          </div>
+          <div class="score-panel">
+            <span>目標</span>
+            <strong id="target-word">100億</strong>
+          </div>
+          <div class="score-panel">
+            <span>近さ</span>
+            <strong id="similarity">0.000</strong>
+          </div>
+          <div class="score-panel">
+            <span>温度</span>
+            <strong id="temperature">-</strong>
+          </div>
+        </div>
+
+        <div class="bench">
+          <form id="new-game-form" class="control-row">
+            <label>
+              目標語
+              <input id="target-input" value="100億" autocomplete="off" />
+            </label>
+            <label>
+              Seed
+              <input id="seed-input" type="number" min="0" value="7" />
+            </label>
+            <label class="checkbox-label">
+              <input id="mock-input" type="checkbox" checked />
+              Mock
+            </label>
+            <button type="submit">開始</button>
+          </form>
+
+          <form id="step-form" class="control-row">
+            <label>
+              演算
+              <select id="operation-input">
+                <option value="mix">mix</option>
+                <option value="slerp" selected>slerp</option>
+                <option value="subtract">subtract</option>
+                <option value="repel">repel</option>
+                <option value="purify">purify</option>
+              </select>
+            </label>
+            <label>
+              素材語
+              <input id="ingredient-input" value="金" list="vocabulary" autocomplete="off" />
+              <datalist id="vocabulary"></datalist>
+            </label>
+            <label>
+              強さ
+              <input id="strength-input" type="range" min="0.01" max="1" step="0.01" value="0.44" />
+            </label>
+            <output id="strength-output">0.44</output>
+            <button type="submit">錬成</button>
+          </form>
+        </div>
+
+        <section class="result-grid">
+          <article>
+            <h2>結果</h2>
+            <pre id="result-output">ゲームを開始してください。</pre>
+          </article>
+          <article>
+            <h2>履歴</h2>
+            <ol id="history-list"></ol>
+          </article>
+          <article>
+            <h2>候補</h2>
+            <ul id="candidate-list"></ul>
+          </article>
+        </section>
+      </section>
+
+      <aside class="side-panel">
+        <a href="/docs" target="_blank" rel="noreferrer">Swagger UI</a>
+        <a href="/redoc" target="_blank" rel="noreferrer">ReDoc</a>
+        <p id="game-meta">APIレスポンスをそのまま表示します。</p>
+      </aside>
+    </main>
+
+    <script src="/static/app.js"></script>
+  </body>
+</html>
