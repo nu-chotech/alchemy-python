@@ -44,7 +44,11 @@ class GameStateResponse(BaseModel):
     turn_limit: int
     history: list[str]
     similarity: float
+    best_similarity: float
     temperature: str
+    combo: int
+    score_total: float
+    recent_events: list[str]
     complete: bool
 
 
@@ -109,6 +113,10 @@ def create_game(request: CreateGameRequest):
             "target": target,
             "history": {START_WORD},
             "turn": 1,
+            "combo": 0,
+            "score_total": 0.0,
+            "best_similarity": 0.0,
+            "events": [],
         },
     }
     return {"state": serialize_state(game_id), "result": None}
@@ -148,6 +156,7 @@ def serialize_state(game_id: str):
     session = get_session(game_id)
     state = session["state"]
     similarity = session["space"].similarity(state["current"], state["target"])
+    best_similarity = max(state.get("best_similarity", similarity), similarity)
     return {
         "game_id": game_id,
         "vector_source": session["source"],
@@ -157,7 +166,11 @@ def serialize_state(game_id: str):
         "turn_limit": TURN_LIMIT,
         "history": sorted(state["history"]),
         "similarity": similarity,
+        "best_similarity": best_similarity,
         "temperature": temperature_label(similarity),
+        "combo": state.get("combo", 0),
+        "score_total": state.get("score_total", 0.0),
+        "recent_events": state.get("events", []),
         "complete": similarity >= 0.88 or state["turn"] > TURN_LIMIT,
     }
 

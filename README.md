@@ -56,6 +56,8 @@ python semantic_alchemy.py --mock --seed 3 \
 
 `seed` は候補単語の中から採用する単語をランダムに選ぶための乱数種です。同じ seed、同じ目標語、同じ手順なら結果を再現しやすくなります。
 
+ゲーム演出として、目標語に近づく手を続けるとコンボが伸び、落札価格に倍率がかかります。大きく近づいた手や危険度の高い手には `Goal Rush`、`Wild Vector`、`High Roller` などの称号が付き、Web UI のログにも残ります。
+
 ## Web UI / API
 
 FastAPI の薄いAPIと、出力確認用の最小Web UIを追加しています。Swagger UI は FastAPI 標準の `/docs` で使えます。

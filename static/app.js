@@ -5,9 +5,12 @@ const elements = {
   targetWord: document.querySelector("#target-word"),
   similarity: document.querySelector("#similarity"),
   temperature: document.querySelector("#temperature"),
+  combo: document.querySelector("#combo"),
+  scoreTotal: document.querySelector("#score-total"),
   resultOutput: document.querySelector("#result-output"),
   historyList: document.querySelector("#history-list"),
   candidateList: document.querySelector("#candidate-list"),
+  eventList: document.querySelector("#event-list"),
   gameMeta: document.querySelector("#game-meta"),
   vocabulary: document.querySelector("#vocabulary"),
   strengthInput: document.querySelector("#strength-input"),
@@ -71,7 +74,9 @@ function render(data) {
   elements.targetWord.textContent = state.target;
   elements.similarity.textContent = state.similarity.toFixed(3);
   elements.temperature.textContent = state.temperature;
-  elements.gameMeta.textContent = `${state.vector_source} / Turn ${state.turn} of ${state.turn_limit}`;
+  elements.combo.textContent = state.combo;
+  elements.scoreTotal.textContent = Math.round(state.score_total).toLocaleString("ja-JP");
+  elements.gameMeta.textContent = `${state.vector_source} / Turn ${state.turn} of ${state.turn_limit} / Best ${state.best_similarity.toFixed(3)}`;
   elements.resultOutput.classList.remove("error");
   elements.resultOutput.textContent = JSON.stringify(result || state, null, 2);
 
@@ -88,6 +93,14 @@ function render(data) {
     ...candidates.map((candidate) => {
       const item = document.createElement("li");
       item.textContent = `${candidate.word} (${candidate.score.toFixed(3)})`;
+      return item;
+    })
+  );
+
+  elements.eventList.replaceChildren(
+    ...state.recent_events.slice().reverse().map((eventText) => {
+      const item = document.createElement("li");
+      item.textContent = eventText;
       return item;
     })
   );

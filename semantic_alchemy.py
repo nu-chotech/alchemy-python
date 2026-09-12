@@ -20,6 +20,8 @@ COHERENCE_WEIGHT = 1300
 RARITY_WEIGHT = 1900
 NOVELTY_WEIGHT = 900
 RISK_PENALTY = 1700
+COMBO_STEP = 0.03
+MAX_COMBO_BONUS = 0.6
 
 MOCK_VECTORS = {
     "りんご": [0.8, 0.18, 0.1, 0.1, 0.0],
@@ -55,6 +57,11 @@ class StepResult:
     accepted: bool
     message: str
     score: float
+    base_score: float
+    multiplier: float
+    delta_similarity: float
+    combo: int
+    awards: list[str]
     breakdown: dict[str, float]
     candidates: list[tuple[str, float]]
 
@@ -243,22 +250,91 @@ def step(space, state, operation, ingredient, rng, strength=DEFAULT_STRENGTH):
     strength = max(0.01, min(1.0, float(strength)))
 
     if ingredient not in space:
-        return StepResult(state["turn"], operation, ingredient, strength, None, False, "語彙にありません", 0.0, {}, [])
+        return empty_step_result(state["turn"], operation, ingredient, strength, "語彙にありません")
     if operation not in {"mix", "slerp", "subtract", "repel", "purify"}:
-        return StepResult(state["turn"], operation, ingredient, strength, None, False, "未知の演算です", 0.0, {}, [])
+        return empty_step_result(state["turn"], operation, ingredient, strength, "未知の演算です")
 
+    previous_similarity = space.similarity(current, target)
     vector = operate(space[current], space[ingredient], space[target], operation, strength)
     candidates = space.nearest(vector, topn=TOPN, exclude=history | {current, ingredient})
     chosen = choose_candidate(candidates, rng)
     if chosen is None:
-        return StepResult(state["turn"], operation, ingredient, strength, None, False, "候補がありません", 0.0, {}, [])
+        return empty_step_result(state["turn"], operation, ingredient, strength, "候補がありません")
 
     result_word, _ = chosen
-    score, breakdown = score_word(space, result_word, current, ingredient, target, operation)
+    base_score, breakdown = score_word(space, result_word, current, ingredient, target, operation)
+    next_similarity = space.similarity(result_word, target)
+    delta_similarity = next_similarity - previous_similarity
+    combo = next_combo(state.get("combo", 0), delta_similarity)
+    multiplier = score_multiplier(combo, breakdown["risk"])
+    score = base_score * multiplier
+    awards = step_awards(delta_similarity, combo, score, breakdown)
+
     state["current"] = result_word
     state["history"].add(result_word)
     state["turn"] += 1
-    return StepResult(state["turn"] - 1, operation, ingredient, strength, result_word, True, "錬成成功", score, breakdown, candidates[:5])
+    state["combo"] = combo
+    state["score_total"] = state.get("score_total", 0.0) + score
+    state["best_similarity"] = max(state.get("best_similarity", previous_similarity), next_similarity)
+    state.setdefault("events", []).append(event_message(state["turn"] - 1, result_word, delta_similarity, combo, awards))
+    state["events"] = state["events"][-6:]
+
+    return StepResult(
+        state["turn"] - 1,
+        operation,
+        ingredient,
+        strength,
+        result_word,
+        True,
+        "錬成成功",
+        score,
+        base_score,
+        multiplier,
+        delta_similarity,
+        combo,
+        awards,
+        breakdown,
+        candidates[:5],
+    )
+
+
+def empty_step_result(turn, operation, ingredient, strength, message):
+    return StepResult(turn, operation, ingredient, strength, None, False, message, 0.0, 0.0, 1.0, 0.0, 0, [], {}, [])
+
+
+def next_combo(current_combo, delta_similarity):
+    if delta_similarity >= COMBO_STEP:
+        return current_combo + 1
+    if delta_similarity >= 0.0:
+        return current_combo
+    return 0
+
+
+def score_multiplier(combo, risk):
+    combo_bonus = min(combo * 0.12, MAX_COMBO_BONUS)
+    risk_bonus = 0.08 if risk >= 0.28 else 0.0
+    return 1.0 + combo_bonus + risk_bonus
+
+
+def step_awards(delta_similarity, combo, score, breakdown):
+    awards = []
+    if delta_similarity >= 0.12:
+        awards.append("Goal Rush")
+    if combo >= 2:
+        awards.append(f"{combo} Chain")
+    if breakdown["novelty"] >= 0.42 and breakdown["risk"] >= 0.25:
+        awards.append("Wild Vector")
+    if breakdown["risk"] <= 0.1 and breakdown["coherence"] >= 0.85:
+        awards.append("Clean Craft")
+    if score >= 7500:
+        awards.append("High Roller")
+    return awards
+
+
+def event_message(turn, result_word, delta_similarity, combo, awards):
+    sign = "+" if delta_similarity >= 0 else ""
+    award_text = f" / {', '.join(awards)}" if awards else ""
+    return f"Turn {turn}: {result_word} ({sign}{delta_similarity:.3f}) Combo {combo}{award_text}"
 
 
 def clamp01(value):
@@ -279,7 +355,12 @@ def print_result(result):
         print(f"失敗: {result.message}")
         return
 
-    print(f"=> {result.result_word}  落札価格: {result.score:,.0f}")
+    print(
+        f"=> {result.result_word}  落札価格: {result.score:,.0f} "
+        f"倍率: x{result.multiplier:.2f}  Combo: {result.combo}"
+    )
+    if result.awards:
+        print("称号:", ", ".join(result.awards))
     print(
         "内訳: "
         f"目標 {result.breakdown['target']:.3f}, "

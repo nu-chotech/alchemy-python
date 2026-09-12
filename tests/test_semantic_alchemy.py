@@ -44,6 +44,9 @@ class SemanticAlchemyTest(unittest.TestCase):
 
         self.assertTrue(result.accepted)
         self.assertEqual(0.62, result.strength)
+        self.assertGreaterEqual(result.multiplier, 1.0)
+        self.assertIsInstance(result.awards, list)
+        self.assertIn("score_total", state)
         self.assertGreater(result.score, 0)
         self.assertEqual({"target", "coherence", "rarity", "novelty", "risk"}, set(result.breakdown))
         self.assertIn(result.result_word, state["history"])
