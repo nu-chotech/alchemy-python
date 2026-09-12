@@ -26,6 +26,9 @@ class AppTest(unittest.TestCase):
         self.assertEqual(0.44, payload["result"]["strength"])
         self.assertIn("multiplier", payload["result"])
         self.assertIn("recent_events", payload["state"])
+        self.assertEqual("りんご", payload["state"]["turns"][0]["before_word"])
+        self.assertEqual("金", payload["state"]["turns"][0]["ingredient"])
+        self.assertEqual(payload["state"]["current"], payload["state"]["turns"][0]["after_word"])
         self.assertEqual(2, payload["state"]["turn"])
 
     def test_unknown_target_is_rejected(self):

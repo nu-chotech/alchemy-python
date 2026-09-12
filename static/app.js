@@ -7,7 +7,12 @@ const elements = {
   temperature: document.querySelector("#temperature"),
   combo: document.querySelector("#combo"),
   scoreTotal: document.querySelector("#score-total"),
+  flowBefore: document.querySelector("#flow-before"),
+  flowIngredient: document.querySelector("#flow-ingredient"),
+  flowOperation: document.querySelector("#flow-operation"),
+  flowAfter: document.querySelector("#flow-after"),
   resultOutput: document.querySelector("#result-output"),
+  turnList: document.querySelector("#turn-list"),
   historyList: document.querySelector("#history-list"),
   candidateList: document.querySelector("#candidate-list"),
   eventList: document.querySelector("#event-list"),
@@ -79,6 +84,8 @@ function render(data) {
   elements.gameMeta.textContent = `${state.vector_source} / Turn ${state.turn} of ${state.turn_limit} / Best ${state.best_similarity.toFixed(3)}`;
   elements.resultOutput.classList.remove("error");
   elements.resultOutput.textContent = JSON.stringify(result || state, null, 2);
+  renderTurnFlow(state, result);
+  renderTurnList(state.turns);
 
   elements.historyList.replaceChildren(
     ...state.history.map((word) => {
@@ -101,6 +108,37 @@ function render(data) {
     ...state.recent_events.slice().reverse().map((eventText) => {
       const item = document.createElement("li");
       item.textContent = eventText;
+      return item;
+    })
+  );
+}
+
+function renderTurnFlow(state, result) {
+  const latestTurn = state.turns[state.turns.length - 1];
+  const ingredientInput = document.querySelector("#ingredient-input").value.trim();
+  const operationInput = document.querySelector("#operation-input").value;
+
+  elements.flowBefore.textContent = latestTurn?.before_word || state.current;
+  elements.flowIngredient.textContent = latestTurn?.ingredient || ingredientInput || "-";
+  elements.flowOperation.textContent = latestTurn
+    ? `${latestTurn.operation} ${Number(latestTurn.strength).toFixed(2)}`
+    : operationInput;
+  elements.flowAfter.textContent = latestTurn?.after_word || "?";
+}
+
+function renderTurnList(turns) {
+  elements.turnList.replaceChildren(
+    ...turns.slice().reverse().map((turn) => {
+      const item = document.createElement("li");
+      const delta = `${turn.delta_similarity >= 0 ? "+" : ""}${turn.delta_similarity.toFixed(3)}`;
+      const awards = turn.awards.length ? ` / ${turn.awards.join(", ")}` : "";
+      const title = document.createElement("strong");
+      const flow = document.createElement("span");
+      const meta = document.createElement("small");
+      title.textContent = `Turn ${turn.turn}`;
+      flow.textContent = `${turn.before_word} + ${turn.ingredient} -> ${turn.after_word}`;
+      meta.textContent = `${turn.operation} ${Number(turn.strength).toFixed(2)} / ${delta} / x${Number(turn.multiplier).toFixed(2)}${awards}`;
+      item.append(title, flow, meta);
       return item;
     })
   );

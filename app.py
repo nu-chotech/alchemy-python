@@ -49,6 +49,7 @@ class GameStateResponse(BaseModel):
     combo: int
     score_total: float
     recent_events: list[str]
+    turns: list[dict]
     complete: bool
 
 
@@ -117,6 +118,7 @@ def create_game(request: CreateGameRequest):
             "score_total": 0.0,
             "best_similarity": 0.0,
             "events": [],
+            "turns": [],
         },
     }
     return {"state": serialize_state(game_id), "result": None}
@@ -171,6 +173,7 @@ def serialize_state(game_id: str):
         "combo": state.get("combo", 0),
         "score_total": state.get("score_total", 0.0),
         "recent_events": state.get("events", []),
+        "turns": state.get("turns", []),
         "complete": similarity >= 0.88 or state["turn"] > TURN_LIMIT,
     }
 

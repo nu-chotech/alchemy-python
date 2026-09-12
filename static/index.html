@@ -78,7 +78,28 @@
           </form>
         </div>
 
+        <section class="turn-flow" aria-label="Turn展開">
+          <div class="turn-node">
+            <span>現在語</span>
+            <strong id="flow-before">りんご</strong>
+          </div>
+          <div class="turn-operator" id="flow-operation">slerp</div>
+          <div class="turn-node">
+            <span>素材語</span>
+            <strong id="flow-ingredient">金</strong>
+          </div>
+          <div class="turn-arrow">-></div>
+          <div class="turn-node turn-node-after">
+            <span>素材後</span>
+            <strong id="flow-after">?</strong>
+          </div>
+        </section>
+
         <section class="result-grid">
+          <article class="turn-list-panel">
+            <h2>Turn展開</h2>
+            <ol id="turn-list" class="turn-list"></ol>
+          </article>
           <article>
             <h2>結果</h2>
             <pre id="result-output">ゲームを開始してください。</pre>

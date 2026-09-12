@@ -276,6 +276,22 @@ def step(space, state, operation, ingredient, rng, strength=DEFAULT_STRENGTH):
     state["combo"] = combo
     state["score_total"] = state.get("score_total", 0.0) + score
     state["best_similarity"] = max(state.get("best_similarity", previous_similarity), next_similarity)
+    state.setdefault("turns", []).append(
+        turn_summary(
+            state["turn"] - 1,
+            current,
+            ingredient,
+            result_word,
+            operation,
+            strength,
+            previous_similarity,
+            next_similarity,
+            score,
+            multiplier,
+            combo,
+            awards,
+        )
+    )
     state.setdefault("events", []).append(event_message(state["turn"] - 1, result_word, delta_similarity, combo, awards))
     state["events"] = state["events"][-6:]
 
@@ -335,6 +351,37 @@ def event_message(turn, result_word, delta_similarity, combo, awards):
     sign = "+" if delta_similarity >= 0 else ""
     award_text = f" / {', '.join(awards)}" if awards else ""
     return f"Turn {turn}: {result_word} ({sign}{delta_similarity:.3f}) Combo {combo}{award_text}"
+
+
+def turn_summary(
+    turn,
+    before_word,
+    ingredient,
+    after_word,
+    operation,
+    strength,
+    previous_similarity,
+    next_similarity,
+    score,
+    multiplier,
+    combo,
+    awards,
+):
+    return {
+        "turn": turn,
+        "before_word": before_word,
+        "ingredient": ingredient,
+        "after_word": after_word,
+        "operation": operation,
+        "strength": strength,
+        "previous_similarity": previous_similarity,
+        "next_similarity": next_similarity,
+        "delta_similarity": next_similarity - previous_similarity,
+        "score": score,
+        "multiplier": multiplier,
+        "combo": combo,
+        "awards": awards,
+    }
 
 
 def clamp01(value):
