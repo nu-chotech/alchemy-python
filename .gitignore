@@ -1,3 +1,10 @@
+# model
+model/
+entity_vector.kv
+entity_vector.kv.vectors.npy
+entity_vector.model.bin
+entity_vector.model
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]

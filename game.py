@@ -1,42 +1,41 @@
-from gensim.models import KeyedVectors
-import numpy as np
 import random
-
-# -----------------------------
-# モデル読み込み
-# -----------------------------
-print("日本語モデルを読み込み中...（初回は2〜3分）")
-
-# model = KeyedVectors.load_word2vec_format(
-#     "model/entity_vector.model.bin",
-#     binary=True
-# )
-
-# ※ 処理時間がだいぶ思いから使わない
-# model = KeyedVectors.load_word2vec_format(
-#     "model/entity_vector.txt",
-#     binary=False
-# )
-
-# 高速化するならモデルを保存しておく
-model = KeyedVectors.load("model/entity_vector.kv")
-
-print("読み込み完了！ゲーム開始！")
+from pathlib import Path
 
 
-# -----------------------------
-# 距離（コサイン類似度）
-# -----------------------------
-def similarity(word1, word2):
+MODEL_PATH = Path("model/entity_vector.kv")
+START_WORD = "りんご"
+CLEAR_SIMILARITY = 0.72
+
+
+def load_model(model_path=MODEL_PATH):
+    from gensim.models import KeyedVectors
+
+    if not model_path.exists():
+        raise FileNotFoundError(
+            f"{model_path} が見つかりません。"
+            "model/entity_vector.model.txt を用意してから convert.py を実行してください。"
+        )
+
+    print("日本語モデルを読み込み中...（初回は2〜3分）")
+    try:
+        model = KeyedVectors.load(str(model_path))
+    except FileNotFoundError as exc:
+        raise FileNotFoundError(
+            f"モデルを構成するファイルが足りません: {exc.filename}。"
+            "convert.py で生成された .kv と付随する .npy を同じ場所に置いてください。"
+        ) from exc
+    print("読み込み完了！ゲーム開始！")
+    return model
+
+
+def similarity(model, word1, word2):
     if word1 not in model or word2 not in model:
         return None
     return float(model.similarity(word1, word2))
 
 
-# -----------------------------
-# 単語合成（ゲームの核）
-# -----------------------------
-def combine_words(current_word, input_word, history, beta=0.35):
+def combine_words(model, current_word, input_word, history, beta=0.35):
+    import numpy as np
 
     if current_word not in model:
         return None, f"『{current_word}』は辞書にありません"
@@ -63,82 +62,96 @@ def combine_words(current_word, input_word, history, beta=0.35):
             filtered.append((word, score))
 
     if not filtered:
-        return None, "候補が見つかりません" 
+        return None, "候補が見つかりません"
 
     new_word, score = random.choice(filtered)
-    return new_word, score 
+    return new_word, score
 
-# -----------------------------
-# 進捗表示（プレイヤーの体感用）
-# -----------------------------
+
 def progress_message(sim):
     if sim is None:
         return "判定不能"
-    elif sim < 0.25:
+    if sim < 0.25:
         return "かなり遠い…"
-    elif sim < 0.45:
+    if sim < 0.45:
         return "少し関係ありそう"
-    elif sim < 0.60:
+    if sim < 0.60:
         return "近づいてきた！"
-    elif sim < 0.72:
+    if sim < CLEAR_SIMILARITY:
         return "かなり近い！！"
-    else:
-        return "到達圏内！！！"
-
-# -----------------------------
-# ゲーム設定
-# -----------------------------
-START_WORD = "りんご"
-TARGET_WORD = input("今回の目標単語を入力してください：")
-
-if TARGET_WORD not in model:
-    print(None, f"『{TARGET_WORD}』は辞書にありません")
-
-current = START_WORD
-history = {START_WORD}
-
-print(f"\nスタート単語：{START_WORD}")
-print(f"ヒント：{len(TARGET_WORD)}文字")
+    return "到達圏内！！！"
 
 
-# -----------------------------
-# メインループ
-# -----------------------------
-turn = 1
+def play(model):
+    target_word = input("今回の目標単語を入力してください：").strip()
 
-while True:
+    if not target_word:
+        print("目標単語が空です。終了します。")
+        return
 
-    print(f"\n--- Turn {turn} ---")
-    print("現在の単語:", current)
+    if target_word not in model:
+        print(f"『{target_word}』は辞書にありません。終了します。")
+        return
 
-    # ゴール距離（重要：順位ではなく距離）
-    sim = similarity(current, TARGET_WORD)
+    current = START_WORD
+    history = {START_WORD}
+    turn = 1
 
-    if sim is not None:
-        print(f"目標との類似度: {sim:.3f}")
-        print(progress_message(sim))
+    print(f"\nスタート単語：{START_WORD}")
+    print(f"ヒント：{len(target_word)}文字")
 
-        # クリア判定
-        if sim >= 0.72:
-            print("\n🎉 クリア！！ 🎉")
-            print("答え:", TARGET_WORD)
-            break
-    else:
-        print("※目標単語が辞書に無い可能性があります")
+    while True:
+        print(f"\n--- Turn {turn} ---")
+        print("現在の単語:", current)
 
-    player_input = input("入れる単語：")
+        sim = similarity(model, current, target_word)
+        if sim is not None:
+            print(f"目標との類似度: {sim:.3f}")
+            print(progress_message(sim))
 
-    new_word, info = combine_words(current, player_input, history)
+            if sim >= CLEAR_SIMILARITY:
+                print("\nクリア！！")
+                print("答え:", target_word)
+                break
+        else:
+            print("目標単語との類似度を計算できません")
 
-    if new_word is None:
-        print(info)
-        continue
+        player_input = input("入れる単語：").strip()
+        if not player_input:
+            print("単語を入力してください")
+            continue
 
-    print("→ 変化:", new_word)
+        new_word, info = combine_words(model, current, player_input, history)
 
-    current = new_word
-    history.add(new_word)
-    turn += 1
+        if new_word is None:
+            print(info)
+            continue
+
+        print("→ 変化:", new_word)
+
+        current = new_word
+        history.add(new_word)
+        turn += 1
+
+
+def main():
+    try:
+        model = load_model()
+    except FileNotFoundError as exc:
+        print(exc)
+        return
+    except ImportError:
+        print("gensim がインストールされていません。仮想環境を有効化して pip install -r requirements.txt を実行してください。")
+        return
+    except Exception as exc:
+        print(f"モデルを読み込めませんでした: {exc}")
+        return
+
+    play(model)
+
+
+if __name__ == "__main__":
+    main()
 
 # 今回の目標単語を入力してください：宇宙
 
