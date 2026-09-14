@@ -71,6 +71,8 @@ uvicorn app:app --reload
 - Swagger UI: http://127.0.0.1:8000/docs
 - ReDoc: http://127.0.0.1:8000/redoc
 
+Web UI は、候補表示と確定を分けた追加モード `/api/craft/...` を使います。仕様とフロント連携の詳細は [DESIGN.md](DESIGN.md) を参照してください。
+
 主なAPI:
 
 - `POST /api/games`: 目標語とseedを指定してゲーム開始
@@ -78,6 +80,9 @@ uvicorn app:app --reload
 - `POST /api/games/{game_id}/steps`: 演算、素材語、強さを送って1手進める
 - `GET /api/operations`: 演算一覧
 - `GET /api/vocabulary`: 語彙候補
+- `POST /api/craft/games`: 候補選択型ゲームを開始
+- `POST /api/craft/games/{game_id}/candidates`: 素材A・B・割合から候補セットを作成
+- `POST /api/craft/games/{game_id}/confirm`: 候補セット内の1語を確定
 
 Next.js や React Native からはこのJSON APIをそのまま呼び出せます。まずはWeb UIでレスポンス形状とゲーム感を確認し、画面を本格化するときにフロントエンドを別プロジェクト化する想定です。
 

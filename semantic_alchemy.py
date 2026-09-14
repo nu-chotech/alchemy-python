@@ -108,6 +108,10 @@ class GensimSpace:
     def similarity(self, left, right):
         return float(self.model.similarity(left, right))
 
+    @property
+    def words(self):
+        return list(self.model.index_to_key)
+
     def nearest(self, vector, topn=TOPN, exclude=()):
         excluded = set(exclude)
         results = []

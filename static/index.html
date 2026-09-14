@@ -3,127 +3,118 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Semantic Alchemy</title>
+    <title>言葉錬成ラボ</title>
     <link rel="stylesheet" href="/static/styles.css" />
   </head>
   <body>
     <main class="app-shell">
-      <section class="workspace">
-        <div class="status-bar">
-          <div>
-            <p class="eyebrow">Semantic Alchemy</p>
-            <h1 id="current-word">りんご</h1>
-          </div>
-          <div class="score-panel">
-            <span>目標</span>
-            <strong id="target-word">100億</strong>
-          </div>
-          <div class="score-panel">
-            <span>近さ</span>
-            <strong id="similarity">0.000</strong>
-          </div>
-          <div class="score-panel">
-            <span>温度</span>
-            <strong id="temperature">-</strong>
-          </div>
-          <div class="score-panel score-panel-hot">
-            <span>Combo</span>
-            <strong id="combo">0</strong>
-          </div>
-          <div class="score-panel score-panel-gold">
-            <span>総額</span>
-            <strong id="score-total">0</strong>
-          </div>
+      <section class="top-band">
+        <div>
+          <p class="eyebrow">Word2Vec Craft Prototype</p>
+          <h1 id="current-word">りんご</h1>
         </div>
+        <div class="metric">
+          <span>目標</span>
+          <strong id="target-word">100億</strong>
+        </div>
+        <div class="metric">
+          <span>難易度</span>
+          <strong id="difficulty-label">normal</strong>
+        </div>
+        <div class="metric">
+          <span>Combo</span>
+          <strong id="combo">0</strong>
+        </div>
+        <div class="metric">
+          <span>Turn</span>
+          <strong id="turn">1</strong>
+        </div>
+      </section>
 
-        <div class="bench">
-          <form id="new-game-form" class="control-row">
+      <section class="main-grid">
+        <section class="controls">
+          <form id="new-game-form" class="panel">
+            <h2>開始</h2>
             <label>
               目標語
               <input id="target-input" value="100億" autocomplete="off" />
             </label>
             <label>
-              Seed
-              <input id="seed-input" type="number" min="0" value="7" />
-            </label>
-            <label class="checkbox-label">
-              <input id="mock-input" type="checkbox" checked />
-              Mock
-            </label>
-            <button type="submit">開始</button>
-          </form>
-
-          <form id="step-form" class="control-row">
-            <label>
-              演算
-              <select id="operation-input">
-                <option value="mix">mix</option>
-                <option value="slerp" selected>slerp</option>
-                <option value="subtract">subtract</option>
-                <option value="repel">repel</option>
-                <option value="purify">purify</option>
+              難易度
+              <select id="difficulty-input">
+                <option value="normal">ふつう</option>
+                <option value="easy">やさしい</option>
               </select>
             </label>
             <label>
-              素材語
-              <input id="ingredient-input" value="金" list="vocabulary" autocomplete="off" />
-              <datalist id="vocabulary"></datalist>
+              Seed
+              <input id="seed-input" type="number" min="0" value="7" />
+            </label>
+            <label class="check-row">
+              <input id="mock-input" type="checkbox" checked />
+              Mock
+            </label>
+            <label class="check-row">
+              <input id="combo-enabled-input" type="checkbox" checked />
+              コンボ補助
+            </label>
+            <label class="check-row">
+              <input id="goal-bias-input" type="checkbox" checked />
+              目標補正
+            </label>
+            <button type="submit">再スタート</button>
+          </form>
+
+          <form id="candidate-form" class="panel">
+            <h2>候補作成</h2>
+            <label>
+              素材A
+              <input id="material-a-input" value="りんご" list="vocabulary" autocomplete="off" />
             </label>
             <label>
-              強さ
-              <input id="strength-input" type="range" min="0.01" max="1" step="0.01" value="0.44" />
+              素材B
+              <input id="material-b-input" value="金" list="vocabulary" autocomplete="off" />
             </label>
-            <output id="strength-output">0.44</output>
-            <button type="submit">錬成</button>
+            <label>
+              Aの割合
+              <input id="alpha-input" type="range" min="0" max="1" step="0.01" value="0.50" />
+            </label>
+            <output id="alpha-output">0.50</output>
+            <datalist id="vocabulary"></datalist>
+            <button type="submit">候補を見る</button>
           </form>
-        </div>
 
-        <section class="turn-flow" aria-label="Turn展開">
-          <div class="turn-node">
-            <span>現在語</span>
-            <strong id="flow-before">りんご</strong>
+          <section class="panel">
+            <h2>候補</h2>
+            <div id="candidate-meta" class="muted">候補を見ると最大3語を表示します。</div>
+            <div id="candidate-list" class="candidate-list"></div>
+          </section>
+        </section>
+
+        <section class="map-panel">
+          <div class="map-toolbar">
+            <div>
+              <h2>3Dマップ</h2>
+              <p id="map-label">ドラッグで回転、ホイールでズーム</p>
+            </div>
+            <button id="reset-camera-button" type="button">リセット</button>
           </div>
-          <div class="turn-operator" id="flow-operation">slerp</div>
-          <div class="turn-node">
-            <span>素材語</span>
-            <strong id="flow-ingredient">金</strong>
-          </div>
-          <div class="turn-arrow">-></div>
-          <div class="turn-node turn-node-after">
-            <span>素材後</span>
-            <strong id="flow-after">?</strong>
+          <div id="map-viewport" class="map-viewport">
+            <div id="map-scene" class="map-scene"></div>
+            <div id="selected-label" class="selected-label">-</div>
           </div>
         </section>
 
-        <section class="result-grid">
-          <article class="turn-list-panel">
-            <h2>Turn展開</h2>
-            <ol id="turn-list" class="turn-list"></ol>
-          </article>
-          <article>
-            <h2>結果</h2>
-            <pre id="result-output">ゲームを開始してください。</pre>
-          </article>
-          <article>
-            <h2>履歴</h2>
-            <ol id="history-list"></ol>
-          </article>
-          <article>
-            <h2>候補</h2>
-            <ul id="candidate-list"></ul>
-          </article>
-          <article>
-            <h2>ログ</h2>
-            <ul id="event-list"></ul>
-          </article>
+        <section class="panel details-panel">
+          <h2>状態</h2>
+          <pre id="result-output">ゲームを開始してください。</pre>
+          <h2>履歴</h2>
+          <ol id="history-list"></ol>
+          <h2>ログ</h2>
+          <ul id="event-list"></ul>
+          <p class="links"><a href="/docs" target="_blank" rel="noreferrer">Swagger UI</a> / <a href="/redoc" target="_blank" rel="noreferrer">ReDoc</a></p>
         </section>
       </section>
-
-      <aside class="side-panel">
-        <a href="/docs" target="_blank" rel="noreferrer">Swagger UI</a>
-        <a href="/redoc" target="_blank" rel="noreferrer">ReDoc</a>
-        <p id="game-meta">APIレスポンスをそのまま表示します。</p>
-      </aside>
     </main>
 
     <script src="/static/app.js"></script>

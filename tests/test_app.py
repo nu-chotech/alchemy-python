@@ -2,12 +2,27 @@ import unittest
 
 from fastapi import HTTPException
 
-from app import CreateGameRequest, StepRequest, app, create_game, create_step, games
+from app import (
+    CraftCandidatesRequest,
+    CraftConfirmRequest,
+    CraftCreateGameRequest,
+    CreateGameRequest,
+    StepRequest,
+    app,
+    craft_games,
+    create_craft_candidates,
+    create_craft_game,
+    create_game,
+    create_step,
+    confirm_craft_candidate,
+    games,
+)
 
 
 class AppTest(unittest.TestCase):
     def setUp(self):
         games.clear()
+        craft_games.clear()
 
     def test_create_mock_game(self):
         payload = create_game(CreateGameRequest(target="100億", seed=3, use_mock=True))
@@ -42,6 +57,69 @@ class AppTest(unittest.TestCase):
 
         self.assertIn("/api/games", schema["paths"])
         self.assertIn("/api/games/{game_id}/steps", schema["paths"])
+        self.assertIn("/api/craft/games", schema["paths"])
+
+    def test_craft_candidate_confirm_advances_once(self):
+        created = create_craft_game(CraftCreateGameRequest(target="100億", use_mock=True))
+        game_id = created["state"]["game_id"]
+        candidates = create_craft_candidates(
+            game_id,
+            CraftCandidatesRequest(material_a="りんご", material_b="金", alpha=0.5),
+        )
+
+        self.assertEqual(1, candidates["state"]["turn"])
+        self.assertEqual(["りんご"], candidates["state"]["history"])
+
+        candidate_set_id = candidates["candidate_set"]["candidate_set_id"]
+        candidate_id = candidates["candidate_set"]["candidates"][0]["id"]
+        confirmed = confirm_craft_candidate(
+            game_id,
+            CraftConfirmRequest(candidate_set_id=candidate_set_id, candidate_id=candidate_id),
+        )
+
+        self.assertEqual(2, confirmed["state"]["turn"])
+        self.assertEqual(2, len(confirmed["state"]["history"]))
+        self.assertIn("target_similarity", confirmed["result"])
+
+        with self.assertRaises(HTTPException) as context:
+            confirm_craft_candidate(
+                game_id,
+                CraftConfirmRequest(candidate_set_id=candidate_set_id, candidate_id=candidate_id),
+            )
+        self.assertEqual(409, context.exception.status_code)
+
+    def test_craft_stale_candidate_set_is_rejected(self):
+        created = create_craft_game(CraftCreateGameRequest(target="100億", use_mock=True))
+        game_id = created["state"]["game_id"]
+        first = create_craft_candidates(game_id, CraftCandidatesRequest(material_a="りんご", material_b="金", alpha=0.5))
+        create_craft_candidates(game_id, CraftCandidatesRequest(material_a="りんご", material_b="宇宙", alpha=0.5))
+
+        with self.assertRaises(HTTPException) as context:
+            confirm_craft_candidate(
+                game_id,
+                CraftConfirmRequest(
+                    candidate_set_id=first["candidate_set"]["candidate_set_id"],
+                    candidate_id=first["candidate_set"]["candidates"][0]["id"],
+                ),
+            )
+
+        self.assertEqual(409, context.exception.status_code)
+
+    def test_craft_easy_mode_exposes_target_similarity_but_normal_hides_it(self):
+        normal = create_craft_game(CraftCreateGameRequest(target="100億", difficulty="normal", use_mock=True))
+        easy = create_craft_game(CraftCreateGameRequest(target="100億", difficulty="easy", use_mock=True))
+
+        normal_candidates = create_craft_candidates(
+            normal["state"]["game_id"],
+            CraftCandidatesRequest(material_a="りんご", material_b="金", alpha=0.5),
+        )
+        easy_candidates = create_craft_candidates(
+            easy["state"]["game_id"],
+            CraftCandidatesRequest(material_a="りんご", material_b="金", alpha=0.5),
+        )
+
+        self.assertIsNone(normal_candidates["candidate_set"]["candidates"][0]["target_similarity"])
+        self.assertIsInstance(easy_candidates["candidate_set"]["candidates"][0]["target_similarity"], float)
 
 
 if __name__ == "__main__":
